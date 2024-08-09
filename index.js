@@ -1,27 +1,69 @@
-// HINTS:
 // 1. Import express and axios
 import express from "express";
-import axios from "axios";
+import mongoose from 'mongoose';
+
+ const connectDD = async () => {
+    try {
+        await mongoose.connect('mongodb://127.0.0.1:27017/crud');
+        console.log('mongoose conected');
+    } catch (error) {
+        console.log('error in mongoose')
+    }
+ }
+ connectDD();
+const userSchema = new mongoose.Schema({
+  firstName : {
+    type : String,
+    required : true
+  },
+  lastName : {
+    type : String,
+    required : true
+  },
+  email : {
+    type : String,
+    required : true
+  }
+})
+
+const User = mongoose.model('User', userSchema)
+
 
 // 2. Create an express app and set the port number.
 const app = express();
 const PORT = 3000;
 // 3. Use the public folder for static files.
-app.use(express.static("public"));
+app.use(express.json());
+app.use(express.urlencoded({extended : true}))
 
 // 4. When the user goes to the home page it should render the index.ejs file.
 app.get('/',  async(req , res)=>{
     try{
-
-        const response = await axios.get("https://secrets-api.appbrewery.com/random");
-        const result = response.data;
-        res.render("index.ejs" , {
-            secret : result.secret,
-            user : result.username
-        });
+   const users  = await User.find();
+   res.status(200).json(users)
+        
     }catch(error){
         console.log(error.response.data);
         res.status(500);
+    }
+})
+
+
+app.post('/create',async (req, res) => {
+    try {
+        const {firstName, lastName, email} = req.body;
+
+        let user = new User({
+            firstName,
+            lastName,
+            email
+        });
+
+        await user.save();
+        return res.status(201).json({message : "user created"}) 
+    } catch (error) {
+        console.log(error)
+        return res.status(401).send(error)
     }
 })
 
